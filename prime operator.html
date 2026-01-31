@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIME // OPERATOR 2026</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #050505; --card: #0f0f0f; --text: #ffffff; --accent: #ffffff; --border: #222; --dim: #555; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px 80px 20px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        .container { max-width: 1100px; width: 100%; transition: 0.5s; }
+
+        #settingsBar {
+            position: fixed; top: 0; left: -350px; width: 320px; height: 100%;
+            background: var(--card); border-right: 1px solid var(--border);
+            z-index: 2000; transition: 0.4s ease; padding: 40px 25px; overflow-y: auto;
+        }
+        #settingsBar.open { left: 0; box-shadow: 20px 0 80px rgba(0,0,0,0.8); }
+        
+        .system-footer-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 35px;
+            background: #000; border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; box-sizing: border-box; font-size: 0.6rem;
+            color: var(--dim); letter-spacing: 1px; text-transform: uppercase; z-index: 1000;
+        }
+        .status-node { display: flex; align-items: center; gap: 8px; }
+        .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px var(--accent); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .settings-group { margin-bottom: 30px; border-bottom: 1px solid #111; padding-bottom: 20px; }
+        .focus-input { width: 100%; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 10px; border-radius: 4px; font-size: 0.75rem; margin-top: 10px; outline: none; font-family: 'Inter'; }
+        .theme-grid { display: flex; gap: 10px; margin-top: 10px; }
+        .theme-dot { width: 25px; height: 25px; border-radius: 4px; cursor: pointer; border: 1px solid #333; }
+        
+        header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        h1 { font-family: 'Syncopate', sans-serif; font-size: 0.9rem; letter-spacing: 6px; margin: 0; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        .section-label { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; display: block; }
+        
+        .habit-input-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        input.main-in { background: transparent; border: 1px solid var(--border); color: white; padding: 12px; flex-grow: 1; border-radius: 6px; outline: none; }
+        .add-btn { background: var(--accent); color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
+        .habit-card { display: flex; align-items: center; justify-content: space-between; padding: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+        .circle-check { width: 18px; height: 18px; border: 1px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0; }
+        .done { opacity: 0.3; }
+        .done .circle-check { background: var(--accent); color: black; }
+        .done span { text-decoration: line-through; }
+        .habit-emoji { margin-right: 10px; font-size: 1rem; }
+
+        .card { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+        .big-stat { font-family: 'Syncopate'; font-size: 2.2rem; display: block; margin: 5px 0; }
+        
+        .sparkline { display: flex; flex-wrap: wrap; gap: 4px; margin: 15px 0; max-width: 100%; }
+        .spark-dot { width: 6px; height: 6px; border-radius: 50%; background: #222; transition: 0.3s; }
+        .spark-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+        /* Analytics Styles */
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.7rem; border-bottom: 1px solid #111; padding-bottom: 8px; }
+        .stat-val { font-weight: 600; color: var(--accent); }
+
+        @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div id="settingsBar">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+        <span class="section-label">Config Console</span>
+        <span style="cursor:pointer; font-size: 1.5rem;" onclick="toggleSettings()">×</span>
+    </div>
+
+    <div class="settings-group">
+        <label class="section-label">Operator ID</label>
+        <input type="text" id="adminNameIn" class="focus-input" placeholder="Set Admin Name..." oninput="saveAdminName()">
+    </div>
+
+    <div class="settings-group">
+        <label class="section-label">Weekly Focus</label>
+        <input type="text" id="focusIn" class="focus-input" placeholder="Set this week's theme..." oninput="saveFocus()">
+    </div>
+
+    <div class="settings-group">
+        <label class="section-label">Visual Themes</label>
+        <div class="theme-grid">
+            <div class="theme-dot" style="background:#fff" onclick="setTheme('#ffffff')"></div>
+            <div class="theme-dot" style="background:#00ffcc" onclick="setTheme('#00ffcc')"></div>
+            <div class="theme-dot" style="background:#ffae00" onclick="setTheme('#ffae00')"></div>
+            <div class="theme-dot" style="background:#ff3366" onclick="setTheme('#ff3366')"></div>
+        </div>
+    </div>
+
+    <div class="settings-group">
+        <label class="section-label">Data Management</label>
+        <button onclick="exportData()" style="width:100%; background:#111; color:white; border:1px solid #333; padding:10px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-top:10px;">DOWNLOAD BACKUP (.JSON)</button>
+        <button onclick="localStorage.clear(); location.reload();" style="width:100%; background:transparent; border:none; color:#552222; padding:10px; cursor:pointer; font-size:0.6rem; margin-top:10px;">PURGE ALL DATA</button>
+    </div>
+</div>
+
+<div class="container">
+    <header>
+        <div>
+            <div style="cursor:pointer; opacity:0.5; margin-bottom:10px;" onclick="toggleSettings()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </div>
+            <h1>PRIME // OPERATOR</h1>
+            <div id="monthLabel" style="font-size: 0.65rem; color: var(--accent); margin-top: 5px; text-transform: uppercase; letter-spacing: 4px; font-weight: 600;"></div>
+            <div id="focusDisplay" style="font-size: 0.55rem; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;"></div>
+        </div>
+        <div style="text-align: right; font-size: 0.6rem; color: var(--dim); max-width: 200px;">"Consistency is the engine of change."</div>
+    </header>
+
+    <div class="grid">
+        <div class="main-panel">
+            <span class="section-label">Current Intentions</span>
+            <div class="habit-input-group">
+                <input type="text" id="habitIn" class="main-in" placeholder="Add a new habit..." onkeypress="if(event.key==='Enter')add()">
+                <button class="add-btn" onclick="add()">+</button>
+            </div>
+            <div id="habitList"></div>
+        </div>
+
+        <div class="side-panel">
+            <div class="card">
+                <span class="section-label">Monthly Completion</span>
+                <span class="big-stat" id="perc">0%</span>
+                <div class="sparkline" id="spark"></div>
+                <p style="font-size: 0.7rem; color: var(--dim);">Streak: <span id="str" style="color: white;">0</span> days</p>
+            </div>
+            
+            <div class="card">
+                <span class="section-label">Monthly Analytics</span>
+                <div id="analyticsPanel" style="margin-top: 10px;">
+                    <div class="stat-row">
+                        <span style="color:var(--dim)">EFFICIENCY RATE</span>
+                        <span class="stat-val" id="an-eff">0.0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color:var(--dim)">DAYS ACTIVE</span>
+                        <span class="stat-val" id="an-days">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span style="color:var(--dim)">SYSTEM STATUS</span>
+                        <span class="stat-val" id="an-status">STANDBY</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <span class="section-label">Performance Summary</span>
+                <canvas id="miniChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="system-footer-bar">
+    <div class="status-node">
+        <div class="pulse-dot"></div>
+        <span>System: Online</span>
+        <span id="adminDisplay" style="margin-left:15px; border-left: 1px solid #222; padding-left:15px;">User: Prime_Operator</span>
+        <span id="liveClock" style="margin-left:15px; border-left: 1px solid #222; padding-left:15px; color: white;">00:00:00</span>
+    </div>
+    <div style="display:flex; gap:20px;">
+        <span id="completionRef">Intentions: 0/0</span>
+        <span id="syncRef">Sync: Jan 2026</span>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('mono_v25')) || { 
+        habits: [], history: [], streak: 0, focus: "", adminName: "Prime_Operator",
+        settings: { accent: "#ffffff" } 
+    };
+
+    const emojiMap = {
+        'gym': '💪', 'workout': '🏋️', 'run': '🏃', 'walk': '🚶', 'read': '📚', 
+        'code': '💻', 'work': '💼', 'meditate': '🧘', 'water': '💧', 'eat': '🥗', 
+        'sleep': '😴', 'write': '✍️', 'study': '📖', 'clean': '🧹', 'money': '💰'
+    };
+
+    function getEmoji(text) {
+        const lower = text.toLowerCase();
+        for (const key in emojiMap) {
+            if (lower.includes(key)) return emojiMap[key];
+        }
+        return '🔹';
+    }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('liveClock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleSettings() { document.getElementById('settingsBar').classList.toggle('open'); }
+    function setTheme(color) { db.settings.accent = color; save(); }
+    function saveFocus() { db.focus = document.getElementById('focusIn').value; save(); }
+    function saveAdminName() { db.adminName = document.getElementById('adminNameIn').value; save(); }
+    
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "operator_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function add() {
+        const val = document.getElementById('habitIn').value;
+        if(val.trim()) {
+            db.habits.push({text: val, done: false});
+            document.getElementById('habitIn').value = "";
+            save();
+        }
+    }
+
+    function toggle(i) {
+        db.habits[i].done = !db.habits[i].done;
+        updateLogic();
+        save();
+    }
+
+    function archiveItem(i) {
+        db.habits.splice(i, 1);
+        save();
+    }
+
+    function updateLogic() {
+        const d = new Date().toDateString();
+        const all = db.habits.length > 0 && db.habits.every(h => h.done);
+        if(all && !db.history.includes(d)) { db.history.push(d); db.streak++; }
+        else if(!all && db.history.includes(d)) { db.history = db.history.filter(x => x !== d); db.streak = Math.max(0, db.streak - 1); }
+    }
+
+    function save() { 
+        localStorage.setItem('mono_v25', JSON.stringify(db)); 
+        render(); 
+    }
+
+    function runAnalytics() {
+        const now = new Date();
+        const currentMonth = now.toLocaleString('default', { month: 'short' });
+        const currentYear = now.getFullYear();
+        
+        // Filter history for current month/year
+        const monthlyHits = db.history.filter(d => d.includes(currentMonth) && d.includes(currentYear)).length;
+        const daysPassed = now.getDate();
+        const efficiency = daysPassed > 0 ? ((monthlyHits / daysPassed) * 100).toFixed(1) : 0;
+        
+        document.getElementById('an-eff').innerText = efficiency + "%";
+        document.getElementById('an-days').innerText = monthlyHits;
+        
+        let status = "INACTIVE";
+        if(efficiency > 85) status = "OPTIMAL";
+        else if(efficiency > 60) status = "NOMINAL";
+        else if(efficiency > 0) status = "DEGRADED";
+        
+        document.getElementById('an-status').innerText = status;
+        document.getElementById('an-status').style.color = efficiency > 60 ? 'var(--accent)' : '#ff3366';
+    }
+
+    function render() {
+        document.documentElement.style.setProperty('--accent', db.settings.accent);
+        document.getElementById('focusIn').value = db.focus || "";
+        document.getElementById('adminNameIn').value = db.adminName || "";
+        document.getElementById('adminDisplay').innerText = `User: ${db.adminName || 'Operator'}`;
+        document.getElementById('focusDisplay').innerText = db.focus ? `Focus: ${db.focus}` : "SYSTEM READY";
+        
+        const now = new Date();
+        document.getElementById('monthLabel').innerText = `${now.toLocaleString('default', { month: 'long' })} 2026`;
+        const completedCount = db.habits.filter(h => h.done).length;
+        document.getElementById('completionRef').innerText = `Intentions: ${completedCount}/${db.habits.length}`;
+
+        document.getElementById('habitList').innerHTML = db.habits.map((h, i) => `
+            <div class="habit-card ${h.done ? 'done' : ''}">
+                <div style="display:flex; align-items:center; cursor:pointer; flex-grow:1;" onclick="toggle(${i})">
+                    <div class="circle-check">${h.done ? '✓' : ''}</div>
+                    <span class="habit-emoji">${getEmoji(h.text)}</span>
+                    <span>${h.text}</span>
+                </div>
+                <div style="color:var(--dim); cursor:pointer; font-size:1.2rem; padding-left:15px;" onclick="archiveItem(${i})">×</div>
+            </div>
+        `).join('');
+
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        document.getElementById('perc').innerText = Math.round((db.history.length / daysInMonth) * 100) + "%";
+        document.getElementById('str').innerText = db.streak;
+        
+        const spark = document.getElementById('spark');
+        spark.innerHTML = '';
+        for(let i=1; i<=daysInMonth; i++) {
+            const dateCheck = new Date(now.getFullYear(), now.getMonth(), i).toDateString();
+            const isActive = db.history.includes(dateCheck);
+            spark.innerHTML += `<div class="spark-dot ${isActive ? 'active' : ''}"></div>`;
+        }
+        
+        runAnalytics();
+
+        const ctx = document.getElementById('miniChart').getContext('2d');
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, { type: 'line', data: { labels:['M','T','W','T','F','S','S'], datasets:[{data:[4,7,5,8,6,9,7], borderColor:db.settings.accent, borderWidth:2, tension:0.4, pointRadius:0}]}, options:{plugins:{legend:{display:false}}, scales:{x:{display:false},y:{display:false}}}});
+    }
+    render();
+</script>
+</body>
+</html>
